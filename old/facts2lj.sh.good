@@ -308,7 +308,7 @@ rmTmpfiles () {
   dbg ${dbg_SUB} "rmTmpfiles() called"
   # Remove temporary files before exiting
   dbg ${dbg_BASIC} "Cleaning temporary files ${filePS} ${fileItems} ${fileWork} ${fileTest}"
-  #rm ${filePS} ${fileItems} ${fileWork} ${fileTest} >/dev/null 2>&1
+  rm ${filePS} ${fileItems} ${fileWork} ${fileTest} >/dev/null 2>&1
 }
 # ===================
 printMe () {
@@ -394,12 +394,12 @@ while [ ${pgEOF} -eq 0 ] ; do
     for (( i=1; i<=4; i++ )) ; do
       nextLine="$( getNext )"
       zz=$(stripme ${nextLine::40} )
-      [ ${#zz} -gt 2 ] && {
+      [ ${#zz} -ge 2 ] && {
         invBill[${i}]=${zz}
         dbg ${dbg_VAR} "Adding BILLTO address ${invBill[$i]}"
       }
       zz=$( stripme ${nextLine:40} )
-      [ ${#zz} -gt 2 ] && {
+      [ ${#zz} -ge 2 ] && {
         invShip[${i}]=${zz}
         dbg ${dbg_VAR} "Adding SHIPTO address ${invShip[$i]}"
       }
