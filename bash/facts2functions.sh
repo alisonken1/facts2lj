@@ -12,8 +12,9 @@
 # ====== WARNING ========= WARNING ======= WARNING =====
 #
 # ======================================================
-# crunch()   - Remove leading/trailing spaces
-# get_right()  - Strip trailing spaces/newlines
+# dbg()          - Output debugging info to stderr
+# crunch()       - Remove leading/trailing spaces
+# get_right()    - Strip trailing spaces/newlines
 # getFileName()  - Strip path info and return filename
 # getPrevMonth() - Return the previous month number
 # getSeq()       - Return the next number in a sequence (up to 999)
@@ -28,24 +29,41 @@ echo 'Loading common variables' >&2
 # common variables
 # dirBase="/facts" # Define in each script
 # dirScrips="${dirBase}/bash" # Define in each script
-dirReports="${dirBase}/REPORTS"
-dirTemp="${dirBase}/tmp"
-dirWork="${dirBase}/work"
-webBASE="/var/www"
-webCGI="${WEBBASE}/cgi-bin"
-webPAGE="${WEBBASE}/htdocs"
-webRPTINDX="${WEBCGI}/mkrptindex.sh"
+export dirReports="${dirBase}/REPORTS"
+export dirTemp="${dirBase}/tmp"
+export dirWork="${dirBase}/work"
+export webBASE="/var/www"
+export webCGI="${WEBBASE}/cgi-bin"
+export webPAGE="${WEBBASE}/htdocs"
+export webRPTINDX="${WEBCGI}/mkrptindex.sh"
 # =========  Directory/File defines ====================
+#
+# ========= Debug defines ==============================
+export dbg_NONE=0
+export dbg_ERROR=$(( ${dbg_NONE} + 1 ))
+export dbg_BASIC=$(( ${dbg_ERROR} +1 ))
+export dbg_SUB=$(( ${dbg_BASIC} + 1 ))
+export dbg_LOOP=$(( ${dbg_SUB} + 1 ))
+export dbg_DATA=$(( ${dbg_LOOP} + 1 ))
+export dbg_VAR=$(( ${dbg_DATA} + 1 ))
+export dbg_ALL=99
+export dbgLevel=${dbg_ALL}
+declare -a dbgTags
+export dbgTags
+dbgTags[${dbg_ERROR}]="ERROR : "
+dbgTags[${dbg_BASIC}]="INFO  : "
+dbgTags[${dbg_SUB}]="SUB   : "
+dbgTags[${dbg_LOOP}]="LOOP  : "
+dbgTags[${dbg_DATA}]="DATA  : "
+dbgTags[${dbg_VAR}]="VAR   : "
+# ========= Debug defines ==============================
 #
 # ========= Printer defines ============================
 # Printer defined by $0 (symlink to this file for printer queue)
-lprCommand="/usr//bin/lp -d $( basename ${0} | cut -d. -f1)"
+lprCommand="/usr/bin/lp -d $( basename ${0} | cut -d. -f1)"
 lprOpts='-s'
-# Old setup
-#LPR="/usr/bin/lpr -P"
-#LPROPT="-s -o raw"
 # ========= Printer defines ============================
-
+#
 #
 # #################################################### #
 #     WARNING == WARNING == WARNING == WARNING         #
@@ -64,6 +82,27 @@ stripM() { sed -e 's///g'; }
 
 echo 'Loading stripM1()' >&2
 stripM1() { sed -e 's/[#]/ /g' -e 's/\&/%/g'; }
+
+echo 'Loading dbg()' >&2
+dbg() {
+  # $1 = debug level for output
+  # $2 $N = line to print
+  local dbgz dbglvl zz
+  dbglvl=${1} ; shift
+  [ ${dbglvl} -eq ${dbg_NONE} ] && return
+  [ ${dbglvl} -gt ${dbgLevel} ] && return
+  zz=${@}
+  case ${dbglvl} in
+  ${dbg_DATA} | ${dbg_VAR} )
+    # Indent input line
+    echo "${dbgTags[$dbglvl]}     ${zz}" >&2
+    ;;
+  * )
+    # Just dump line
+    echo "${dbgTags[$dbglvl]}${zz}" >&2
+    ;;
+  esac
+}
 
 echo 'Loading crunch()' >&2
 crunch() { echo "$*"; }
@@ -159,6 +198,6 @@ rmTmpfiles () {
   dbg ${dbg_SUB} "rmTmpfiles() called"
   # Remove temporary files before exiting
   dbg ${dbg_BASIC} "Cleaning temporary files ${filePS} ${fileItems} ${fileWork} ${fileTest}"
-  rm ${filePS} ${fileItems} ${fileWork} ${fileTest} >/dev/null 2>&1
+  rm ${fileTmp} ${filePS} ${fileItems} ${fileWork} ${fileTest} >/dev/null 2>&1
 }
 
