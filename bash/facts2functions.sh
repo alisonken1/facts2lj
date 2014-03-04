@@ -40,7 +40,8 @@ export webRPTINDX="${WEBCGI}/mkrptindex.sh"
 #
 # ========= Debug defines ==============================
 export dbg_NONE=0
-export dbg_ERROR=$(( ${dbg_NONE} + 1 ))
+export dbg_FATAL=$(( ${dbg_NONE} + 1 ))
+export dbg_ERROR=$(( ${dbg_FATAL} + 1 ))
 export dbg_BASIC=$(( ${dbg_ERROR} +1 ))
 export dbg_SUB=$(( ${dbg_BASIC} + 1 ))
 export dbg_LOOP=$(( ${dbg_SUB} + 1 ))
@@ -50,6 +51,7 @@ export dbg_ALL=99
 export dbgLevel=${dbg_ALL}
 declare -a dbgTags
 export dbgTags
+dbgTags[${dbg_FATAL}]="FATAL : "
 dbgTags[${dbg_ERROR}]="ERROR : "
 dbgTags[${dbg_BASIC}]="INFO  : "
 dbgTags[${dbg_SUB}]="SUB   : "
