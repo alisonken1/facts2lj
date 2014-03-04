@@ -48,7 +48,7 @@ export dbg_LOOP=$(( ${dbg_SUB} + 1 ))
 export dbg_DATA=$(( ${dbg_LOOP} + 1 ))
 export dbg_VAR=$(( ${dbg_DATA} + 1 ))
 export dbg_ALL=99
-export dbgLevel=${dbg_ALL}
+export dbgLevel=${dbg_INFO}
 declare -a dbgTags
 export dbgTags
 dbgTags[${dbg_FATAL}]="FATAL : "
