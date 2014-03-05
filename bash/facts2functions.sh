@@ -191,7 +191,8 @@ getTempFile() {
     tFile="${tFile}${i}"
     break
   done
-  echo -n "$tFile"
+  echo -n "${tFile}"
+  [ "$(1)" == "${tFile}" ] && return 1 # All extensions already used
   return
 }
 
