@@ -25,8 +25,10 @@ if [ ${zz} -ne 0 ]; then
     exit ${zz}
 fi
 dbg ${dbg_INFO} "Saving to ${fileTmp}"
-cat - >"${fileTmp}" || {
+cat - >"${fileTmp}"
+zz=$?
+[ ${zz} -ne 0 ] && {
         dbg ${dbg_FATAL} "Cannot create ${fileTmp}!!!! System full?"
         dbg ${dbg_FATAL} "Exiting"
-        exit 1
+        exit ${zz}
 }
