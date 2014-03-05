@@ -16,16 +16,17 @@ echo "Sourcing ${dirScripts}/facts2functions.sh" >&2
 source ${dirScripts}/facts2functions.sh
 #==================================================
 # Save report to temp file
-#fileTmp="$( mktemp ${dirTemp}/${myName}.XXXXXX )"
-fileTmp="$( mktemp /sys/facts2ljtest.XXXXXX)"
-if [ -f ${fileTmp} ]; then
-    cat - >"${fileTmp}" || {
+
+fileTmp="$( mktemp ${dirTemp}/${myName}.XXXXXX )"
+zz=$?
+if [ ${zz} -ne 0 ]; then
+    dbg ${dbg_FATAL} "Cannot create temporary file!!!! Inodes full?"
+    dbg ${dbg_FATAL} "Exiting"
+    exit ${zz}
+fi
+dbg ${dbg_INFO} "Saving to ${fileTmp}"
+cat - >"${fileTmp}" || {
         dbg ${dbg_FATAL} "Cannot create ${fileTmp}!!!! System full?"
         dbg ${dbg_FATAL} "Exiting"
         exit 1
-    }
-else
-    dbg ${dbg_FATAL} "Cannot create temporary file!!!! Inodes full?"
-    dbg ${dbg_FATAL} "Exiting"
-fi
-dbg ${dbg_INFO} "Saving report as temp file ${fileTmp}"
+}
