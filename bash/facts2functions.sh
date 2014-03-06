@@ -198,10 +198,11 @@ getTempFile() {
 }
 
 # ===================
-rmTmpfiles () {
+echo "Loading rmTmpFiles()" >&2
+rmTmpFiles() {
   dbg ${dbg_SUB} "rmTmpfiles() called"
   # Remove temporary files before exiting
-  dbg ${dbg_BASIC} "Cleaning temporary files ${filePS} ${fileItems} ${fileWork} ${fileTest}"
-  rm ${fileTmp} ${filePS} ${fileItems} ${fileWork} ${fileTest} >/dev/null 2>&1
+  dbg ${dbg_INFO} "Cleaning temporary files ${filePS} ${fileItems} ${fileWork} ${fileTmp} ${fileTest}"
+  rm ${fileTmp} ${filePS} ${fileItems} ${fileWork} ${fileTmp} ${fileTest}>/dev/null 2>&1
 }
 
