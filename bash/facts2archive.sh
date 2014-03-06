@@ -97,4 +97,6 @@ else
 
         mv ${fileTmp} ${RPTDIR}/${tFileName} >&2
         dbg ${dbg_INFO} "Moved ${fileTmp} to ${RPTDIR}/${tFileName}"
+
+    fi
 fi
