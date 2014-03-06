@@ -3,6 +3,8 @@
 #
 __name__="facts2archive"
 __version__="0.2"
+__release__="BETA"
+
 if [ "${__status__}" != "RUN" ]; then
     echo ${__name__} ${__version__}
 else
@@ -100,6 +102,6 @@ else
 
             mv ${fileTmp} ${RPTDIR}/${tFileName} >&2
             dbg ${dbg_INFO} "Moved ${fileTmp} to ${RPTDIR}/${tFileName}"
-        fi
+        fig
     fi
 fi
