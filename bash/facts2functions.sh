@@ -280,10 +280,15 @@ else
     printMe () {
       # ${1} is the file to print
       dbg ${dbg_SUB} "printMe() called"
-      dbg ${dbg_INFO} "Finished conversion run - sending ${1} to printer ${lpPrinter}"
-      dbg ${dbg_INFO} "Print command: '${lpCommand} ${lprPrinter} ${lpOpts} ${1}'"
-      ${lpCommand} ${lpPrinter} ${lpOpts} ${1}
-      sleep 3
+      ${lpStatus} ${lpPrinter} >/dev/null 2>&1
+      if [ $? -ne 0 ] ]; then
+          dbg ${dbg_ERROR} "Printer ${1} not found - not printing"
+      else
+          dbg ${dbg_INFO} "Finished conversion run - sending ${1} to printer ${lpPrinter}"
+          dbg ${dbg_INFO} "Print command: '${lpCommand} ${lprPrinter} ${lpOpts} ${1}'"
+          ${lpCommand} ${lpPrinter} ${lpOpts} ${1}
+          sleep 3
+      fi
       return
     }
 fi
