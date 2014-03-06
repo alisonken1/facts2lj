@@ -281,7 +281,7 @@ else
       # ${1} is the file to print
       dbg ${dbg_SUB} "printMe() called"
       dbg ${dbg_INFO} "Finished conversion run - sending ${1} to printer ${lpPrinter}"
-      dbg ${dbg_INFO} "Print command: '${lpCommand} -P ${lprPrinter} ${lpOpts} ${1}'"
+      dbg ${dbg_INFO} "Print command: '${lpCommand} ${lprPrinter} ${lpOpts} ${1}'"
       ${lpCommand} ${lpPrinter} ${lpOpts} ${1}
       sleep 3
       return
