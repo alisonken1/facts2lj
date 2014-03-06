@@ -79,23 +79,27 @@ else
         # Check for directory structure
         RPTDIR="${dirReports}/${tYear}/${tMonth}"
         if [ ! -d "${RPTDIR}" ]; then
-           mkdir -p "${RPTDIR}"
-           chgrp users "${RPTDIR}"
-           chmod 775 "${RPTDIR}"
+           {   mkdir -p "${RPTDIR}"
+               chgrp users "${RPTDIR}"
+               chmod 775 "${RPTDIR}"
+           } 2>/dev/null
         fi
+        if [ ! -d "${RPTDIR}" ] ; then
+            dbg ${dbg_ERROR} "Unable to create directory ${RPTDIR}"
+            dbg ${dbg_ERROR} "Cannot save report"
+        else
+            # Check for new directory needed
+            # Check if the report exists
+            # Add a sequence number if needed
+            if [ -f "${RPTDIR}/${tFileName}" ]; then
+               tFileName=${tFileName}.`getSeq "${RPTDIR}/${tFileName}"`
+            fi
 
-        # Check for new directory needed
-        # Check if the report exists
-        # Add a sequence number if needed
-        if [ -f "${RPTDIR}/${tFileName}" ]; then
-           tFileName=${tFileName}.`getSeq "${RPTDIR}/${tFileName}"`
+            # Period check register mod (change MM/YY to MM_DD for filename)
+            tFileName=$(echo ${tFileName} | sed -e 's/\//_/g')
+
+            mv ${fileTmp} ${RPTDIR}/${tFileName} >&2
+            dbg ${dbg_INFO} "Moved ${fileTmp} to ${RPTDIR}/${tFileName}"
         fi
-
-        # Period check register mod (change MM/YY to MM_DD for filename)
-        tFileName=$(echo ${tFileName} | sed -e 's/\//_/g')
-
-        mv ${fileTmp} ${RPTDIR}/${tFileName} >&2
-        dbg ${dbg_INFO} "Moved ${fileTmp} to ${RPTDIR}/${tFileName}"
-
     fi
 fi
