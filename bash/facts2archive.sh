@@ -68,22 +68,21 @@ else
     else
        tFileName="${tHead[3]}_${tHead[$(( $tHeadCount - 4 ))]}_20${tDate[2]}${tDate[0]}${tDate[1]}"
     fi
-    if [ "${tFileName}" = "__20" ]; then
+    tYear=20${tDate[2]}
+    if [ "${tFileName}" = "__20" ] || [ "${tYear}" == "20" ]; then
        # Not a proper report - delete
        dbg ${dbg_ERROR} "Not a valid report - exiting"
     else
-
         # Variables for proper placing of file in archive tree
-        tYear=20${tDate[2]}
         tMonth=${tDate[0]}
 
         # Check for directory structure
-        if [ ! -d "${dirReports}/${tYear}/${tMonth}" ]; then
-           mkdir -p "${dirReports}/${tYear}/${tMonth}"
-           chgrp users "${dirReports}/${tYear}/${tMonth}"
-           chmod 775 "${dirReports}/${tYear}/${tMonth}"
-        fi
         RPTDIR="${dirReports}/${tYear}/${tMonth}"
+        if [ ! -d "${RPTDIR}" ]; then
+           mkdir -p "${RPTDIR}"
+           chgrp users "${RPTDIR}"
+           chmod 775 "${RPTDIR}"
+        fi
 
         # Check for new directory needed
         # Check if the report exists
