@@ -1,7 +1,10 @@
-#!/bin/bash
+# DO NOT RUN THIS BY ITSELF
+# It is designed to be sourced by originating file
 #
-export __name__="facts2invoice"
-export __version__="0.2"
+# Convert FACTS invoice output for Abletronics to Postscript
+#
+__name__="facts2invoice"
+__version__="0.2"
 if [ "${__status__}" != "RUN" ]; then
     echo ${__name__} ${__version__}
 else
