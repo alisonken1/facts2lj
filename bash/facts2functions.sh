@@ -62,8 +62,9 @@ dbgTags[${dbg_VAR}]="VAR   : "
 #
 # ========= Printer defines ============================
 # Printer defined by $0 (symlink to this file for printer queue)
-lprCommand="/usr/bin/lp -d $( basename ${0} | cut -d. -f1)"
-lprOpts='-s'
+lpPrinter="$(basename ${0} | cut -d. -f1)"
+lpCommand="/usr/bin/lp -d ${lpPrinter}"
+lpOpts='-s'
 # ========= Printer defines ============================
 #
 #
