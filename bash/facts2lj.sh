@@ -13,6 +13,7 @@ export dirScripts="${dirBase}/bash"
 #
 export __name__="facts2lj"
 export __version__="0.3"
+export __release__="BETA"
 export __status__="RUN"
 declare -a  __scripts__
 __scripts__[0]="facts2archive"
@@ -23,7 +24,7 @@ export __scripts__
 case ${1} in
 -v|--version)
     unset __status__
-    echo ${__name__} ${__version__}
+    echo ${__name__} ${__version__} ${__release__}
     for i in ${__scripts__[*]}; do
         ${dirScripts}/${i}.sh
     done
