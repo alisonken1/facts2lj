@@ -16,8 +16,9 @@ export __version__="0.3"
 export __release__="BETA"
 export __status__="RUN"
 declare -a  __scripts__
-__scripts__[0]="facts2archive"
-__scripts__[1]="facts2invoice"
+__scripts__[0]="facts2functions"
+__scripts__[1]="facts2archive"
+__scripts__[2]="facts2invoice"
 export __scripts__
 #
 # Test for options
