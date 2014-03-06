@@ -1,7 +1,7 @@
 # DO NOT RUN THIS BY ITSELF
 # It is designed to be sourced by originating file
 __name__="facts2functions"
-__version__="3.0"
+__version__="0.3"
 __release__="BETA"
 
 if [ "${__status__}" != "RUN" ]; then
