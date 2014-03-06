@@ -5,8 +5,10 @@
 #
 __name__="facts2invoice"
 __version__="0.2"
+__release__="BETA"
+
 if [ "${__status__}" != "RUN" ]; then
-    echo ${__name__} ${__version__}
+    echo ${__name__} ${__version__} ${__release__}
 else
     #
     # Convert F.A.C.T.S. invoice output (plain text) formatted for preprinted
