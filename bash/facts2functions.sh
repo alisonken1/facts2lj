@@ -27,6 +27,7 @@ else
     # getPrevMonth() - Return the previous month number
     # getSeq()       - Return the next number in a sequence (up to 999)
     # getTempFile()  - Append [a-z] to $1 to get unique filename
+    # printMe()      - Send print job to printer
     # rmTmpFiles()   - Remove temp files ${filePS} ${fileItems} ${fileWork} ${fileTest}
     # stripM()       - Remove ^M from line
     # stripM1()      - Cconvert & to %, [^M#] to <space>
@@ -276,4 +277,13 @@ else
       return ${gnread}  # Exit with number of lines read
     } # getNext()
     # ===================
+    printMe () {
+      # ${1} is the file to print
+      dbg ${dbg_SUB} "printMe() called"
+      dbg ${dbg_INFO} "Finished conversion run - sending ${1} to printer ${lpPrinter}"
+      dbg ${dbg_INFO} "Print command: '${lpCommand} -P ${lprPrinter} ${lpOpts} ${1}'"
+      ${lpCommand} ${lpPrinter} ${lpOpts} ${1}
+      sleep 3
+      return
+    }
 fi
