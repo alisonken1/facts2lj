@@ -50,7 +50,6 @@ export dbg_VAR=$(( ${dbg_DATA} + 1 ))
 export dbg_ALL=99
 export dbgLevel=${dbg_INFO}
 declare -a dbgTags
-export dbgTags
 dbgTags[${dbg_FATAL}]="FATAL : "
 dbgTags[${dbg_ERROR}]="ERROR : "
 dbgTags[${dbg_INFO}]="INFO  : "
@@ -58,13 +57,15 @@ dbgTags[${dbg_SUB}]="SUB   : "
 dbgTags[${dbg_LOOP}]="LOOP  : "
 dbgTags[${dbg_DATA}]="DATA  : "
 dbgTags[${dbg_VAR}]="VAR   : "
+export dbTags
 # ========= Debug defines ==============================
 #
 # ========= Printer defines ============================
 # Printer defined by $0 (symlink to this file for printer queue)
-lpPrinter="$(basename ${0} | cut -d. -f1)"
-lpCommand="/usr/bin/lp -d ${lpPrinter}"
-lpOpts='-s'
+export lpPrinter="$(basename ${0} | cut -d. -f1)"
+export lpCommand="/usr/bin/lp -d ${lpPrinter}"
+export lpStatus="/usr/bin/lpq -P ${lpPrinter}"
+export lpOpts='-s'
 # ========= Printer defines ============================
 #
 #
