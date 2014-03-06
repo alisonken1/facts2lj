@@ -30,6 +30,7 @@ else
     # rmTmpFiles()   - Remove temp files ${filePS} ${fileItems} ${fileWork} ${fileTest}
     # stripM()       - Remove ^M from line
     # stripM1()      - Cconvert & to %, [^M#] to <space>
+    # stripMe()      - Remove extra \n\r\f characters and outside whitespace
     # ======================================================
     #
     # =========  Directory/File defines ====================
@@ -94,6 +95,9 @@ else
 
     echo 'Loading stripM1()' >&2
     stripM1() { sed -e 's/[#]/ /g' -e 's/\&/%/g'; }
+
+    echo 'Loading stripMe()' >&2
+    stripMe() { echo -ne ${@}; }
 
     echo 'Loading dbg()' >&2
     dbg() {
