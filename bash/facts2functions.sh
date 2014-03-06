@@ -23,6 +23,7 @@ else
     # crunch()       - Remove leading/trailing spaces
     # get_right()    - Strip trailing spaces/newlines
     # getFileName()  - Strip path info and return filename
+    # getNext()      - Returns the next line of input
     # getPrevMonth() - Return the previous month number
     # getSeq()       - Return the next number in a sequence (up to 999)
     # getTempFile()  - Append [a-z] to $1 to get unique filename
@@ -214,4 +215,61 @@ else
       rm ${fileTmp} ${filePS} ${fileItems} ${fileWork} ${fileTmp} ${fileTest}>/dev/null 2>&1
     }
 
+    # ===================
+    echo "Loading getNext()"
+    getNext() {
+      # Read the next line of input
+      # Return ${string} on stdout, Return ${?} of read status
+      # Strips only \f\n\r out of string
+      dbg ${dbg_SUB} "getNext() 1=${1} 2=${2} called"
+      local gnzz gnss gndt IFS gnskip gncount gnread
+      IFS="/f/n/r"
+      if [ "${1::5}" == "BLANK" ] ; then
+        gnskip=1 # Skip $2 number of lines
+      elif [ "${1::4}" == "SKIP" ] ; then
+        gnskip=2 # Skip only blank lines
+      else
+        gnskip=0
+      fi # ${1} checks
+      # Use the largest section as the maximum count if skipping lines
+      # and no number given
+      gncount=${2:-$invItemEnd}
+      dbg ${dbg_VAR} "gnskip=${gnskip} gncount=${gncount}"
+      gnread=0
+      for (( i=1; i<=${gncount}; i++ )) ; do
+        read gnzz
+        gnss=$?
+        echo "${gnzz}">&7
+        case ${gnss} in
+
+          0)
+            # Good read
+            dbg ${dbg_LOOP} "READ: ${gnzz}"
+            ;;
+          1)
+            # EOF
+            dbg ${dbg_LOOP} "READ: EOF detected"
+            export pgEOF=1
+            gnread=${gncount}
+            break
+            ;;
+          *)
+            # Error
+            dbg ${dbg_ERROR} "READ: ERROR CODE ${ss} - Exiting"
+            exit
+            ;;
+        esac
+        if [ ${gnskip} -eq 0 ] ; then
+          dbg ${dbg_LOOP} "getNext() returning 1 line"
+          break # Read one line only
+        elif [ ${gnskip} -eq 1 ] ; then
+          zz=$(echo ${gnzz})
+          [ ${#zz} -gt 2 ] && break # Return on first non-blank line
+        fi # ${gnskip} -eq 1
+        gnread=$(( ${gnread} + 1 ))
+      done
+      echo -n "${gnzz}" | tr -d '\f\n\r'  # Return line to caller on stdout
+      return ${gnread}  # Exit with number of lines read
+    } # getNext()
+    # ===================
 fi
