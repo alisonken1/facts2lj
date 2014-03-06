@@ -10,6 +10,7 @@
 #
 export __name__="facts2lj"
 export __version__="0.3"
+export __status__="RUN"
 #
 # Set these two so we know where the rest of the scripts are
 export dirBase="/facts"
