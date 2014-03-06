@@ -1,4 +1,5 @@
-DATE: 11/05/13          ABLETRONICS           ARR213 PAGE: 1
+
+DATE: 11/05/13          ABLETRONICS           ARR213 PAGE: 1
 USER: CP  T41          DEPOSIT TICKET         TIME:  3:27 PM
 
                        DEPOSIT # 0850
@@ -23,4 +24,4 @@ ACCOUNT #      0056914689
                                                 ------------
 CHECKS: 11                        DEPOSIT TOTAL       879.51
 
-BATCHES: 1                             END OF DEPOSIT TICKET
+BATCHES: 1                             END OF DEPOSIT TICKET
