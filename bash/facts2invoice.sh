@@ -70,7 +70,7 @@ else
     # ==================
     # File variables
     # ==================
-    export filePre="$( mktemp ${dirTemp}/invoice_XXXXXX )"
+    export filePre="$( mktemp ${dirWork}/invoice_XXXXXX )"
     export fileItems="${filePre}.items"
     export fileWork="${filePre}.work"
     export filePS="${filePre}.ps"
@@ -176,7 +176,7 @@ else
     dbg ${dbg_SUB} "Opening FD's for redirection"
     exec 3>"${fileItems}"
     exec 7>"${fileWork}"
-    exec 9<&1
+    # exec 9<&1
     #
     # A little convoluted pulling in from stdin due to trying to use
     # debug statements to figure out how the invoices/pick tickets are
@@ -357,16 +357,17 @@ else
         export pgFOOT=1 # Set notice that footer has been processed
       fi # ${pgFOOT} -ne 0
     # done < <(cat -) # Main loop
-    done < <(cat ${fileWork})
+    done < <(cat ${fileTmp})
     #
-    dbg ${dbg_LOOP} "Closing fdMain"
-    exec 9<&-
+    #dbg ${dbg_LOOP} "Closing fdMain"
+    #exec 9<&-
     dbg ${dbg_LOOP} "Closing fdWork"
     exec 7<&-
     dbg ${dbg_LOOP} "Closing fdItems"
     exec 3<&-
     #
-    if [ -z "$( echo ${invInfo_TOTAL} )" ]; then
+    dbg ${dbg_VAR} "invInfo_TOTAL: '${invInfo_TOTAL}'"
+    if [ -z "${invInfo_TOTAL}" ]; then
       dbg ${dbg_ERROR} "No total cost for invovice - not an invoice?"
       dbg ${dbg_ERROR} "Skipping PS conversion"
     else
@@ -400,33 +401,33 @@ else
         {
           # Postscript header information
           cat <<HERE
-        %!PS-Adobe-3.0 EPSF-3.0
-        %%Creator: invoice.sh bash script created by Ken Roberts
-        %%Title: Abletronics invoice number ${invInfo_NUMBER}
-        %%CreationDate: Thu Jul 12 01:45:30 PDT 2012
-        %%DocumentData: Clean7Bit
-        %%Origin: 0 0 % ${xmin} ${ymin}
-        %%BoundingBox: ${xmin} ${ymin} ${xmax} ${ymax}
-        %%LanguageLevel: 2 [could be 1 2 or 3]
-        %%Pages: ${invInfo_PAGES}
-        %
-        % PS version of AbleTronics sales invoice
-        %
-        % blank box so we can copy/paste for section breaks
-        %
-        %  =====================================================
-        % |                                                     |
-        %  =====================================================
-        %
-        %  =====================================================
-        % |           Invoice specific defines                  |
-        %  =====================================================
-        % Billing info
-        /itemsTotal { ${invInfo_ITEMS} } bind def
-        /pagesTotal { ${invInfo_PAGES} } bind def
-        /billAcct { ( ${invBill[0]} ) } bind def
-        /shipAcct { ( ${invShip[0]} ) } bind def
-        HERE
+%!PS-Adobe-3.0 EPSF-3.0
+%%Creator: invoice.sh bash script created by Ken Roberts
+%%Title: Abletronics invoice number ${invInfo_NUMBER}
+%%CreationDate: Thu Jul 12 01:45:30 PDT 2012
+%%DocumentData: Clean7Bit
+%%Origin: 0 0 % ${xmin} ${ymin}
+%%BoundingBox: ${xmin} ${ymin} ${xmax} ${ymax}
+%%LanguageLevel: 2 [could be 1 2 or 3]
+%%Pages: ${invInfo_PAGES}
+%
+% PS version of AbleTronics sales invoice
+%
+% blank box so we can copy/paste for section breaks
+%
+%  =====================================================
+% |                                                     |
+%  =====================================================
+%
+%  =====================================================
+% |           Invoice specific defines                  |
+%  =====================================================
+% Billing info
+/itemsTotal { ${invInfo_ITEMS} } bind def
+/pagesTotal { ${invInfo_PAGES} } bind def
+/billAcct { ( ${invBill[0]} ) } bind def
+/shipAcct { ( ${invShip[0]} ) } bind def
+HERE
           echo -en   '/billAdx {['
           for (( i=1; i<${#invBill[@]}; i++ )) ; do
             echo -en "(${invBill[$i]})"
@@ -443,707 +444,707 @@ else
         #
           cPg=1
           cat <<HERE
-        %
-        % Array of item lines arrays
-        /itemList [
-        [ % Page ${cPg} array
-        $(
-          dbg ${dbg_LOOP} "Building itemList array"
-          dbg ${dbg_LOOP} "Building PS page ${cPg} array"
-          cItm=0
-          cLeft=${invInfo_ITEMS}
-          ifsR="${IFS}"
-          IFS='\n' # Read unprocessed line so we get the correct spacing
-          cat "${fileItems}" | while read newLine ; do
-            dbg ${dbg_VAR} "newLine: '${newLine}'"
-            IFS="${ifsR}"
-            # Should be no blank lines, so we can exit here
-            [ -z "$( echo ${newLine} )" ] && break
-            cItm=$(( ${cItm} + 1 ))
-            cLeft=$(( ${cLeft} - 1 ))
-            invItems_ORDER="$( echo ${newLine::8} )"
-            invItems_SHIPPED="$( echo${newLine:8:14} )"
-            invItems_BACK="$( echo ${newLine:22:10} )"
-            invItems_ITEM="$( echo ${newLine:32:8} )"
-            invItems_VENDOR="$( echo ${newLine:43:26}|sed -e 's/(/\\(/g' -e 's/)/\\)/g' )"
-            [ ${invItems_OFFSET} -eq 0 ] && {
-              invItems_DESCRIPTION="$( echo  ${newLine:72:36} | sed -e 's/(/\\(/g' -e 's/)/\\)/g' )"
-              invItems_PRICEUI="$( echo ${newLine:106:14} )"
-              invItems_PRICETOT="$( echo ${newLine:120} )"
-            } || {
-              # Offset for pick ticket invoices
-              invItems_DESCRIPTION="$( echo ${newLine:75:36}|sed -e 's/(/\\(/g' -e 's/)/\\)/g' )"
-              invItems_PRICEUI="$( echo ${newLine:109:14} )"
-              invItems_PRICETOT="$( echo ${newLine:123} )"
-            }
-            dbg ${dbg_VAR} "ORDER=${invItems_ORDER}"
-            dbg ${dbg_VAR} "SHIPPED=${invItems_SHIPPED}"
-            dbg ${dbg_VAR} "BACK=${invItems_BACK}"
-            dbg ${dbg_VAR} "ITEM=${invItems_ITEM}"
-            dbg ${dbg_VAR} "VENDOR=${invItems_VENDOR}"
-            dbg ${dbg_VAR} "DESCRIPTION=${invItems_DESCRIPTION}"
-            dbg ${dbg_VAR} "PRICEUI=${invItems_PRICEUI}"
-            dbg ${dbg_VAR} "PRICETOT=${invItems_PRICETOT}"
-            echo "[(${invItems_ORDER})\
-        (${invItems_SHIPPED})\
-        (${invItems_BACK})\
-        (${invItems_ITEM})\
-        (${invItems_VENDOR})\
-        (${invItems_DESCRIPTION})\
-        (${invItems_PRICEUI})\
-        (${invItems_PRICETOT})]"
-            if [ ${cItm} -eq ${invInfo_ITEMSPAGE} ] ; then
-              if [ ${cLeft} -gt $(( ${invInfo_ITEMSPAGEMAX} - ${invInfo_ITEMSPAGE} )) ] ; then
-                cPg=$(( ${cPg} + 1 ))
-                dbg ${dbg_LOOP} "Building PS page ${cPg} array"
-                echo -ne "]\n[ % Page ${cPg} array\n"
-                cItm=0
-              fi
-            fi
-            IFS='\n'
-          done
-          IFS="${ifsR}"
-          dbg ${dbg_LOOP} "Finished building PS page array"
-        )
-        ]
-        ] def
-        %
-        %  =====================================================
-        % |             Basic page layout defines               |
-        %  =====================================================
-        % Typical page size
-        % Folio             595 x 935
-        % Letter            612 x 792
-        % This is actually between folio and letter in height, but that's based on
-        % using Okular from KDE 4.3 on linux - may need to update when we get a printer
-        % to play with
-        %
-        %  =====================================================
-        % |               Physical page size                    |
-        %  =====================================================
-        /paperWidth {595} bind def
-        /paperHeight {792} bind def
-        %
-        %  =====================================================
-        % |         Printable area of paper                     |
-        %  =====================================================
-        % Remember 0,0 is bottom left point
-        /marginX {15} bind def
-        /marginY {10} bind def
-        /pageTop { paperHeight marginY sub } bind def
-        /pageBottom { marginY } bind def
-        /pageLeft { marginX 5 add } bind def % Just a little extra for mechanics
-        /pageRight { paperWidth marginX 2 mul sub } bind def
-        /pageWidth { pageRight pageLeft sub} bind def
-        /pageHeight {pageTop pageBottom sub} bind def
-        /pageX { pageLeft } bind def
-        /pageY { marginY } bind def
-        %
-        %  =====================================================
-        % |          Page layout basic areas                    |
-        %  =====================================================
-        %
-        % Radius of curves in boxes
-        /boxRadius {10} bind def
-        %
-        % Store return address box
-        /boxStoreW { 270 } bind def
-        /boxStoreH { 90 } bind def
-        /boxStoreX { pageLeft 20 add } bind def
-        /boxStoreY { 687 } bind def
-        %
-        % Invoice number/date/pages
-        /boxInvoiceW { 150 } bind def
-        /boxInvoiceH { 90 } bind def
-        /boxInvoiceX { 425 } bind def
-        /boxInvoiceY { 687 } bind def
-        %
-        % Bill to address box
-        /boxBillW { 205 } bind def
-        /boxBillH { 90 } bind def
-        /boxBillX { 85 } bind def
-        /boxBillY { 582 } bind def
-        %
-        % Ship to number/date/pages
-        /boxShipW { 205 } bind def
-        /boxShipH { 90 } bind def
-        /boxShipX { 370 } bind def
-        /boxShipY { 582 } bind def
-        %
-        % Sales info box
-        /boxSalesW { 560 } bind def
-        /boxSalesH { 50 } bind def
-        /boxSalesX { 20 } bind def
-        /boxSalesY { 522 } bind def
-        /boxSalesSecW { 112 } bind def
-        /boxSalesPO { 25 } bind def
-        /boxSalesPerson { 137 } bind def
-        /boxSalesShip { 249 } bind def
-        /boxSalesDate { 361 } bind def
-        /boxSalesTerms { 473 }bind def
-        %
-        % Item info box
-        % Define the size of the item header box since we use it elsewhere
-        /boxItemHeadH { 35 } bind def
-        /boxItemW { boxSalesW } bind def
-        /boxItemH { 430 boxItemHeadH sub } bind def
-        /boxItemX { 20 } bind def
-        /boxItemY { 95 } bind def
-        /boxItemOrder { 20 } bind def
-        /boxItemOrderW { 50 } bind def
-        /boxItemShip { 70 } bind def
-        /boxItemBack { 120 } bind def
-        /boxItemCode { 170 } bind def
-        /boxItemCodeW { 50 } bind def
-        /boxItemVendor { 220 } bind def
-        /boxItemDesc { 345 } bind def
-        /boxItemUI { 475 } bind def
-        /boxItemExtended { 525 } bind def
-        %
-        % Item header box - see above for boxItemH
-        /boxItemHeadW { boxItemW } bind def
-        /boxItemHeadX { boxItemX } bind def
-        /boxItemHeadY { boxItemY boxItemH add  } bind def
-        %
-        % Memo boxes
-        /boxMemoW { 336 } bind def
-        /boxMemoH { 75 } bind def
-        /boxMemoX { 20 } bind def
-        /boxMemoY { 22 } bind def
-        %
-        % Totals box
-        /boxTotalW { 224 } bind def
-        /boxTotalH { 75 } bind def
-        /boxTotalX { 356 } bind def
-        /boxTotalY { 22 } bind def
-        %
-        %  =====================================================
-        % |                   Font definitions                  |
-        %  =====================================================
-        %
-        /ptSize {10} bind def % Default to 10 point size
-        /fntStoreName {/Courier-New-Bold findfont ptSize 2.50 mul scalefont} def
-        /fntStoreBite {/Courier-New-Bold findfont ptSize scalefont} bind def
-        /fntStoreAdx {/Times-New-Roman findfont ptSize 1.00 mul scalefont} def
-        /fntWaterMark {/Courier-New-Bold findfont 32 scalefont} def
-        /fntInvoiceHead {/Courier-New-Bold findfont ptSize 2.0 mul scalefont } def
-        /fntInvoiceText {/Courier-New-Bold findfont ptSize scalefont } def
-        /fntItemHead {/Courier-New-Bold findfont ptSize 0.80 mul scalefont } def
-        /fntInvoiceItem {/Courier-New-Bold findfont ptSize 0.70 mul scalefont } def
-        %
-        %  =====================================================
-        % |          Location for return address                |
-        %  =====================================================
-        /adxAbleX { 25 } bind def
-        /adxAbleY { 772 } bind def
-        %
-        %  =====================================================
-        % |                 Debugging Routines                  |
-        %  =====================================================
-        %
-        % For testing, use the bottom of the page for status checks
-        % Used for testing with interactive interpreter like gs
-        %
-        % Clears the status box
-        /clearStatus
-        {
-          gsave
-          1.0 setgray
-          0 0 paperWidth 45 rectfill
-          grestore
-        } bind def
-        %
-        % Call clearStatus and prints out what status we want
-        /showStatus
-        {
-          gsave
-          clearStatus
-          0.0 setgray
-          10 10 moveto
-          fntStoreAdx setfont
-          100 string cvs show
-          grestore
-        } bind def
-        %
-        %  =====================================================
-        % |                 General routines                    |
-        %  =====================================================
-        % Return the max height of the current font
-        /textHeight {
-            gsave                               % save graphic context
-                10 10 moveto                    % move to some point
-                (Hpg) true charpath pathbbox    % gets text path bounding box
-                                                % (LLx LLy URx URy)
-                pop exch pop sub abs            % Returns the absolute value of llX-URx
-            grestore                            % restore graphic context
-        } bind def
-        %
-        % Return the max character width of the current font
-        /textWidth {
-            gsave                               % save graphic context
-                10 10 moveto                    % move to some point
-                (Hpg) true charpath pathbbox    % gets text path bounding box
-                                                % (LLx LLy URx URy)
-                exch pop sub exch pop abs       % Returns the absolute value of LLy-URy
-            grestore                            % restore graphic context
-        } bind def
-        %
-        /nextLine {
-            0 textHeight 0.75 mul neg rmoveto   % move down only in Y axis
-        } bind def
-        %
-        % Right justify text
-        /rJustify {dup stringwidth pop neg 0 rmoveto} bind def
-        %
-        % Center justify the text
-        /cJustify {dup stringwidth pop 2 div neg 0 rmoveto} bind def
-        %
-        % Returns current X or Y position
-        /currY { currentpoint exch pop } bind def
-        /currX { currentpoint pop} bind def
-        %
-        %  =====================================================
-        % |            Invoice specific commands                |
-        %  =====================================================
-        %
-        % Testing - show the major sections
-        /showSections
-        {
-          % General page layout sections
-          .25 setlinewidth
-          gsave
-          % Specific box areas
-          gsave
-          [3 6] 2 setdash
-          boxStoreX boxStoreY boxStoreW boxStoreH rectstroke
-          boxInvoiceX boxInvoiceY boxInvoiceW boxInvoiceH rectstroke
-          boxBillX boxBillY boxBillW boxBillH rectstroke
-          boxShipX boxShipY boxShipW boxShipH rectstroke
-          boxSalesX boxSalesY boxSalesW boxSalesH rectstroke
-          boxItemHeadX boxItemHeadY boxItemHeadW boxItemHeadH rectstroke
-          boxItemX boxItemY boxItemW boxItemH rectstroke
-          boxMemoX boxMemoY boxMemoW boxMemoH rectstroke
-          boxTotalX boxTotalY boxTotalW boxTotalH rectstroke
-          grestore
-        } bind def
-        %
-        % Abletronics logo
-        /ableLogo {
-          0.1 setlinewidth
-          newpath
-          0 0 moveto
-          % Show the outline of the total logo
-          % 0 0 102 27 rectstroke
-          %
-          % "A" with logo
-          1 1 translate
-          % 0 0 75 25 rectstroke
-          {
-            {
-              0 0 75 27 0 5 6 20 4 0 -6 -20 2 21 2 4 4 0 0 -4 5 10 0 4 6 0 0 -4 -6 0
-              12 5 -6 20 4 0 6 -20 14 0 -1 -1 18 0 -1 -1 28 0 -38 -3 1 1 -16 0 1 1 -9.5 0
-            }
-            < 00 01 23 04 0A 01 23 04 0A 01 24 04 0A 01 2D 04 0A >
-          } ufill
-          %
-          % "B"
-          15 7 translate
-          %0 0 7 10 rectstroke
-          {
-            {
-            0 0 10 15 1 0 0 8 -1 0 1 2 3 0 0 -2 -1 0 0 -2 1 0 0 -2 -1 0
-            0 -2 1 0 0 -2 -1 0 4 10 5 7 3 90 315 5 3 3 45 270 -1 0 0 2
-            5 3 1 270 90 -2 0 0 2 5 7 1 270 90 -2 0
-            }
-            < 00 01 2E 04 0A 01 08 08 04 04 07 04 04 07 04 0A >
-          } ufill
-          %
-          % "L"
-          9 0 translate
-          % 0 0 5 10 rectstroke
-          {
-            { 0 0 5 10 1 0 0 8 -1 0 1 2 2 0 0 -8 2 0 -1 -2  }
-            < 00 01 27 04 0A >
-          } ufill
-          %
-          % "E"
-          5 0 translate
-          % 0 0 8 11 rectstroke
-          {
-            { 0 0 8 11 1 0 0 8 -1 0 1 2 3 0 0.5 0.5 3 0 -2
-              -2.5 -2.5 0 0 -2 4 0 -1 -2 -3 0 0 -2 4 0 -1 -2 }
-            < 00 01 28 04 27 04 0A >
-          } ufill
-          %
-          % "T" with lightning bolt
-          4 -2 translate
-          % 0 0 69 21 rectstroke
-          {
-            { 0 0 69 21 8 0 0 15 -8 0 3 5 14 0 -1 -1  14 0 -1 -1 14 0 -1 -1 24 -2
-            -30 -1 1 1 -14 0 1 1 -11.5 0 0 -16 }
-            < 00 01 30 04 0A >
-          } ufill
-          %
-          % "R"
-          15 2 translate
-          % 0 0 10 10 rectstroke
-          {
-            { 0 0 10 10 1 0 0 8 -1 0 1 2 4 0 0 -2 -2 0 0 -2 2 0 0 -2 -2 0 0 -4
-            5 8 5 7 3 90 270 0 2 5 7 1 270 90 5.5 4.1 3.5 -4.1 -2.5 0 -3.5 4 }
-            < 00 01 2B 04 0A 01 08 04 07 01 04 04 04 0A >
-          } ufill
-          %
-          % "O"
-          9 0 translate
-          % 0 0 10 10 rectstroke
-          {
-            { 0 0 10 10 0 5 5 5 5 180 0 -2 0 5 5 2.5 0 180
-              0 5 5 5 5 180 0 -2 0 5 5 2.5 0 180 }
-            < 00 01 08 04 07 0A 01 07 04 08 0A >
-          } ufill
-          %
-          % "N"
-          11 0 translate
-          % 0 0 8 10 rectstroke
-          {
-            {
-            0 0 8 10 01 00
-            00 08 -1 0 1 2 2 0
-            3 -5.5 0 5.5 2 0 0 -10 -2 0
-            -3 5.5 0 -5.5
-            }
-            < 00 01 2B 04 0A >
-          } ufill
-          %
-          % "I"
-          9.5 0 translate
-          % 0 0 3 10 rectstroke
-          {
-            { 0 0 3 10 1 0 0 8 -1 0 1 2 2 0 0 -10 }
-            < 00 01 25 04 0A >
-          } ufill
-          %
-          % "C"
-          4.5 0 translate
-          % 0 0 9 10 rectstroke
-          {
-            { 0 0 9 10 8 8 5 5 5 45 315 -1 1 5 5 2.75 315 45 1 1 }
-            < 00 01 07 04 08 04 0A >
-          } ufill
-          %
-          % "S"
-          9 0 translate
-          % 0 0 8 10 rectstroke
-          {
-            {
-            0 0 8 10  5.25 8 4 7 2.5 45 215 4.15 7 1 200 45 5.25 3.75 4 2.5 2.5 45 215
-            4 2.5 1 200 45 1.95 5.60 2.75 -2.4 1.1 1.05 -2.6 2.35 2 1 0 2.2 0.99 -1.05
-            4.9 7.7 1.2 -1 -0.2 1.95 -0.1 0.1
-            }
-            < 00 01 07 08 0A 01 08 07 0A 01 23 04 0A 01 04 04 0A 01 23 04 0A >
-          } ufill
-        } bind def
-        %
-        % Show the watermark
-        /showWaterMark {
-          gsave
-          boxItemX 135 add boxItemY 40 add translate 40 rotate
-          0.9 setgray 4 4 scale ableLogo
-          grestore
-        } bind def
-        %
-        % Show the invoice box
-        /showInvoiceBox
-        {
-          gsave
-          boxInvoiceX boxInvoiceY translate
-          newpath
-          /boxInvSec {boxInvoiceH 5 div} def
-          % Draw the boxes
-          0 boxInvSec 3 mul moveto
-          boxInvoiceW 0 rlineto
-          0 boxInvoiceH currY sub boxRadius sub rlineto
-          currX boxRadius sub currY boxRadius 0 90 arc
-          boxInvoiceW neg boxRadius 2 mul add 0 rlineto
-          currX currY boxRadius sub boxRadius 90 180 arc
-          closepath fill
-          0 0 boxInvoiceW boxInvoiceH boxRadius sub rectstroke
-          % Write the text
-          1.0 setgray
-          pageTitle (pack) eq
-          {
-            fntInvoiceHead setfont
-            boxInvoiceW 2 div boxInvoiceH moveto
-            nextLine (Packing Slip) cJustify show
-          }
-          {
-            fntStoreName setfont
-            boxInvoiceW 2 div boxInvSec 3.7 mul moveto
-            (Invoice) cJustify show
-          } ifelse
-          0.0 setgray
-          fntInvoiceText setfont
-          boxInvoiceW 2 idiv boxInvSec 2 mul moveto
-          ( Order : ) rJustify show (${invInfo_NUMBER}) show
-          boxInvoiceW 2 idiv currY moveto
-          nextLine ( Date : ) rJustify show (${invInfo_DATE}) show
-          boxInvoiceW 2 idiv currY moveto
-          nextLine ( Page : ) rJustify show pageCurrent (   ) cvs show
-          ( of ) show pagesTotal (   ) cvs show
-          grestore
-        } bind def
-        %
-        % Show store return address
-        /showStoreAddress {
-          % Show the logo at the top
-          gsave boxStoreX boxStoreY boxStoreH add 40 sub translate 1.5 1.5 scale ableLogo grestore
-          gsave
-          boxStoreX boxStoreY translate
-          newpath
-          0 boxStoreH 35 sub moveto
-          fntStoreBite setfont
-          nextLine ($(echo "${adxAble_TAG}")) show 0 currY moveto
-          fntStoreAdx setfont
-          nextLine ($(echo "${adxAble_STREET}")) show 0 currY moveto
-          nextLine ($(echo "${adxAble_CITY}, ${adxAble_STATE} ${adxAble_ZIP}"))
-          show 0 currY moveto
-          nextLine ($(echo "Phone: ${adxAble_PHONE}  Fax: ${adxAble_FAX}")) show 0 currY moveto
-          nextLine ($(echo "Web  : ${adxAble_WEB}")) show 0 currY moveto
-          grestore
-        } bind def
+%
+% Array of item lines arrays
+/itemList [
+[ % Page ${cPg} array
+$(
+  dbg ${dbg_LOOP} "Building itemList array"
+  dbg ${dbg_LOOP} "Building PS page ${cPg} array"
+  cItm=0
+  cLeft=${invInfo_ITEMS}
+  ifsR="${IFS}"
+  IFS='\n' # Read unprocessed line so we get the correct spacing
+  cat "${fileItems}" | while read newLine ; do
+    dbg ${dbg_VAR} "newLine: '${newLine}'"
+    IFS="${ifsR}"
+    # Should be no blank lines, so we can exit here
+    [ -z "$( echo ${newLine} )" ] && break
+    cItm=$(( ${cItm} + 1 ))
+    cLeft=$(( ${cLeft} - 1 ))
+    invItems_ORDER="$( echo ${newLine::8} )"
+    invItems_SHIPPED="$( echo${newLine:8:14} )"
+    invItems_BACK="$( echo ${newLine:22:10} )"
+    invItems_ITEM="$( echo ${newLine:32:8} )"
+    invItems_VENDOR="$( echo ${newLine:43:26}|sed -e 's/(/\\(/g' -e 's/)/\\)/g' )"
+    [ ${invItems_OFFSET} -eq 0 ] && {
+      invItems_DESCRIPTION="$( echo  ${newLine:72:36} | sed -e 's/(/\\(/g' -e 's/)/\\)/g' )"
+      invItems_PRICEUI="$( echo ${newLine:106:14} )"
+      invItems_PRICETOT="$( echo ${newLine:120} )"
+    } || {
+      # Offset for pick ticket invoices
+      invItems_DESCRIPTION="$( echo ${newLine:75:36}|sed -e 's/(/\\(/g' -e 's/)/\\)/g' )"
+      invItems_PRICEUI="$( echo ${newLine:109:14} )"
+      invItems_PRICETOT="$( echo ${newLine:123} )"
+    }
+    dbg ${dbg_VAR} "ORDER=${invItems_ORDER}"
+    dbg ${dbg_VAR} "SHIPPED=${invItems_SHIPPED}"
+    dbg ${dbg_VAR} "BACK=${invItems_BACK}"
+    dbg ${dbg_VAR} "ITEM=${invItems_ITEM}"
+    dbg ${dbg_VAR} "VENDOR=${invItems_VENDOR}"
+    dbg ${dbg_VAR} "DESCRIPTION=${invItems_DESCRIPTION}"
+    dbg ${dbg_VAR} "PRICEUI=${invItems_PRICEUI}"
+    dbg ${dbg_VAR} "PRICETOT=${invItems_PRICETOT}"
+    echo "[(${invItems_ORDER}) \
+(${invItems_SHIPPED}) \
+(${invItems_BACK}) \
+(${invItems_ITEM}) \
+(${invItems_VENDOR} )\
+(${invItems_DESCRIPTION}) \
+(${invItems_PRICEUI}) \
+(${invItems_PRICETOT}) ]"
+    if [ ${cItm} -eq ${invInfo_ITEMSPAGE} ] ; then
+      if [ ${cLeft} -gt $(( ${invInfo_ITEMSPAGEMAX} - ${invInfo_ITEMSPAGE} )) ] ; then
+        cPg=$(( ${cPg} + 1 ))
+        dbg ${dbg_LOOP} "Building PS page ${cPg} array"
+        echo -ne "]\n[ % Page ${cPg} array\n"
+        cItm=0
+      fi
+    fi
+    IFS='\n'
+  done
+  IFS="${ifsR}"
+  dbg ${dbg_LOOP} "Finished building PS page array"
+)
+]
+] def
+%
+%  =====================================================
+% |             Basic page layout defines               |
+%  =====================================================
+% Typical page size
+% Folio             595 x 935
+% Letter            612 x 792
+% This is actually between folio and letter in height, but that's based on
+% using Okular from KDE 4.3 on linux - may need to update when we get a printer
+% to play with
+%
+%  =====================================================
+% |               Physical page size                    |
+%  =====================================================
+/paperWidth {595} bind def
+/paperHeight {792} bind def
+%
+%  =====================================================
+% |         Printable area of paper                     |
+%  =====================================================
+% Remember 0,0 is bottom left point
+/marginX {15} bind def
+/marginY {10} bind def
+/pageTop { paperHeight marginY sub } bind def
+/pageBottom { marginY } bind def
+/pageLeft { marginX 5 add } bind def % Just a little extra for mechanics
+/pageRight { paperWidth marginX 2 mul sub } bind def
+/pageWidth { pageRight pageLeft sub} bind def
+/pageHeight {pageTop pageBottom sub} bind def
+/pageX { pageLeft } bind def
+/pageY { marginY } bind def
+%
+%  =====================================================
+% |          Page layout basic areas                    |
+%  =====================================================
+%
+% Radius of curves in boxes
+/boxRadius {10} bind def
+%
+% Store return address box
+/boxStoreW { 270 } bind def
+/boxStoreH { 90 } bind def
+/boxStoreX { pageLeft 20 add } bind def
+/boxStoreY { 687 } bind def
+%
+% Invoice number/date/pages
+/boxInvoiceW { 150 } bind def
+/boxInvoiceH { 90 } bind def
+/boxInvoiceX { 425 } bind def
+/boxInvoiceY { 687 } bind def
+%
+% Bill to address box
+/boxBillW { 205 } bind def
+/boxBillH { 90 } bind def
+/boxBillX { 85 } bind def
+/boxBillY { 582 } bind def
+%
+% Ship to number/date/pages
+/boxShipW { 205 } bind def
+/boxShipH { 90 } bind def
+/boxShipX { 370 } bind def
+/boxShipY { 582 } bind def
+%
+% Sales info box
+/boxSalesW { 560 } bind def
+/boxSalesH { 50 } bind def
+/boxSalesX { 20 } bind def
+/boxSalesY { 522 } bind def
+/boxSalesSecW { 112 } bind def
+/boxSalesPO { 25 } bind def
+/boxSalesPerson { 137 } bind def
+/boxSalesShip { 249 } bind def
+/boxSalesDate { 361 } bind def
+/boxSalesTerms { 473 }bind def
+%
+% Item info box
+% Define the size of the item header box since we use it elsewhere
+/boxItemHeadH { 35 } bind def
+/boxItemW { boxSalesW } bind def
+/boxItemH { 430 boxItemHeadH sub } bind def
+/boxItemX { 20 } bind def
+/boxItemY { 95 } bind def
+/boxItemOrder { 20 } bind def
+/boxItemOrderW { 50 } bind def
+/boxItemShip { 70 } bind def
+/boxItemBack { 120 } bind def
+/boxItemCode { 170 } bind def
+/boxItemCodeW { 50 } bind def
+/boxItemVendor { 220 } bind def
+/boxItemDesc { 345 } bind def
+/boxItemUI { 475 } bind def
+/boxItemExtended { 525 } bind def
+%
+% Item header box - see above for boxItemH
+/boxItemHeadW { boxItemW } bind def
+/boxItemHeadX { boxItemX } bind def
+/boxItemHeadY { boxItemY boxItemH add  } bind def
+%
+% Memo boxes
+/boxMemoW { 336 } bind def
+/boxMemoH { 75 } bind def
+/boxMemoX { 20 } bind def
+/boxMemoY { 22 } bind def
+%
+% Totals box
+/boxTotalW { 224 } bind def
+/boxTotalH { 75 } bind def
+/boxTotalX { 356 } bind def
+/boxTotalY { 22 } bind def
+%
+%  =====================================================
+% |                   Font definitions                  |
+%  =====================================================
+%
+/ptSize {10} bind def % Default to 10 point size
+/fntStoreName {/Courier-New-Bold findfont ptSize 2.50 mul scalefont} def
+/fntStoreBite {/Courier-New-Bold findfont ptSize scalefont} bind def
+/fntStoreAdx {/Times-New-Roman findfont ptSize 1.00 mul scalefont} def
+/fntWaterMark {/Courier-New-Bold findfont 32 scalefont} def
+/fntInvoiceHead {/Courier-New-Bold findfont ptSize 2.0 mul scalefont } def
+/fntInvoiceText {/Courier-New-Bold findfont ptSize scalefont } def
+/fntItemHead {/Courier-New-Bold findfont ptSize 0.80 mul scalefont } def
+/fntInvoiceItem {/Courier-New-Bold findfont ptSize 0.70 mul scalefont } def
+%
+%  =====================================================
+% |          Location for return address                |
+%  =====================================================
+/adxAbleX { 25 } bind def
+/adxAbleY { 772 } bind def
+%
+%  =====================================================
+% |                 Debugging Routines                  |
+%  =====================================================
+%
+% For testing, use the bottom of the page for status checks
+% Used for testing with interactive interpreter like gs
+%
+% Clears the status box
+/clearStatus
+{
+  gsave
+  1.0 setgray
+  0 0 paperWidth 45 rectfill
+  grestore
+} bind def
+%
+% Call clearStatus and prints out what status we want
+/showStatus
+{
+  gsave
+  clearStatus
+  0.0 setgray
+  10 10 moveto
+  fntStoreAdx setfont
+  100 string cvs show
+  grestore
+} bind def
+%
+%  =====================================================
+% |                 General routines                    |
+%  =====================================================
+% Return the max height of the current font
+/textHeight {
+    gsave                               % save graphic context
+        10 10 moveto                    % move to some point
+        (Hpg) true charpath pathbbox    % gets text path bounding box
+                                        % (LLx LLy URx URy)
+        pop exch pop sub abs            % Returns the absolute value of llX-URx
+    grestore                            % restore graphic context
+} bind def
+%
+% Return the max character width of the current font
+/textWidth {
+    gsave                               % save graphic context
+        10 10 moveto                    % move to some point
+        (Hpg) true charpath pathbbox    % gets text path bounding box
+                                        % (LLx LLy URx URy)
+        exch pop sub exch pop abs       % Returns the absolute value of LLy-URy
+    grestore                            % restore graphic context
+} bind def
+%
+/nextLine {
+    0 textHeight 0.75 mul neg rmoveto   % move down only in Y axis
+} bind def
+%
+% Right justify text
+/rJustify {dup stringwidth pop neg 0 rmoveto} bind def
+%
+% Center justify the text
+/cJustify {dup stringwidth pop 2 div neg 0 rmoveto} bind def
+%
+% Returns current X or Y position
+/currY { currentpoint exch pop } bind def
+/currX { currentpoint pop} bind def
+%
+%  =====================================================
+% |            Invoice specific commands                |
+%  =====================================================
+%
+% Testing - show the major sections
+/showSections
+{
+  % General page layout sections
+  .25 setlinewidth
+  gsave
+  % Specific box areas
+  gsave
+  [3 6] 2 setdash
+  boxStoreX boxStoreY boxStoreW boxStoreH rectstroke
+  boxInvoiceX boxInvoiceY boxInvoiceW boxInvoiceH rectstroke
+  boxBillX boxBillY boxBillW boxBillH rectstroke
+  boxShipX boxShipY boxShipW boxShipH rectstroke
+  boxSalesX boxSalesY boxSalesW boxSalesH rectstroke
+  boxItemHeadX boxItemHeadY boxItemHeadW boxItemHeadH rectstroke
+  boxItemX boxItemY boxItemW boxItemH rectstroke
+  boxMemoX boxMemoY boxMemoW boxMemoH rectstroke
+  boxTotalX boxTotalY boxTotalW boxTotalH rectstroke
+  grestore
+} bind def
+%
+% Abletronics logo
+/ableLogo {
+  0.1 setlinewidth
+  newpath
+  0 0 moveto
+  % Show the outline of the total logo
+  % 0 0 102 27 rectstroke
+  %
+  % "A" with logo
+  1 1 translate
+  % 0 0 75 25 rectstroke
+  {
+    {
+      0 0 75 27 0 5 6 20 4 0 -6 -20 2 21 2 4 4 0 0 -4 5 10 0 4 6 0 0 -4 -6 0
+      12 5 -6 20 4 0 6 -20 14 0 -1 -1 18 0 -1 -1 28 0 -38 -3 1 1 -16 0 1 1 -9.5 0
+    }
+    < 00 01 23 04 0A 01 23 04 0A 01 24 04 0A 01 2D 04 0A >
+  } ufill
+  %
+  % "B"
+  15 7 translate
+  %0 0 7 10 rectstroke
+  {
+    {
+    0 0 10 15 1 0 0 8 -1 0 1 2 3 0 0 -2 -1 0 0 -2 1 0 0 -2 -1 0
+    0 -2 1 0 0 -2 -1 0 4 10 5 7 3 90 315 5 3 3 45 270 -1 0 0 2
+    5 3 1 270 90 -2 0 0 2 5 7 1 270 90 -2 0
+    }
+    < 00 01 2E 04 0A 01 08 08 04 04 07 04 04 07 04 0A >
+  } ufill
+  %
+  % "L"
+  9 0 translate
+  % 0 0 5 10 rectstroke
+  {
+    { 0 0 5 10 1 0 0 8 -1 0 1 2 2 0 0 -8 2 0 -1 -2  }
+    < 00 01 27 04 0A >
+  } ufill
+  %
+  % "E"
+  5 0 translate
+  % 0 0 8 11 rectstroke
+  {
+    { 0 0 8 11 1 0 0 8 -1 0 1 2 3 0 0.5 0.5 3 0 -2
+      -2.5 -2.5 0 0 -2 4 0 -1 -2 -3 0 0 -2 4 0 -1 -2 }
+    < 00 01 28 04 27 04 0A >
+  } ufill
+  %
+  % "T" with lightning bolt
+  4 -2 translate
+  % 0 0 69 21 rectstroke
+  {
+    { 0 0 69 21 8 0 0 15 -8 0 3 5 14 0 -1 -1  14 0 -1 -1 14 0 -1 -1 24 -2
+    -30 -1 1 1 -14 0 1 1 -11.5 0 0 -16 }
+    < 00 01 30 04 0A >
+  } ufill
+  %
+  % "R"
+  15 2 translate
+  % 0 0 10 10 rectstroke
+  {
+    { 0 0 10 10 1 0 0 8 -1 0 1 2 4 0 0 -2 -2 0 0 -2 2 0 0 -2 -2 0 0 -4
+    5 8 5 7 3 90 270 0 2 5 7 1 270 90 5.5 4.1 3.5 -4.1 -2.5 0 -3.5 4 }
+    < 00 01 2B 04 0A 01 08 04 07 01 04 04 04 0A >
+  } ufill
+  %
+  % "O"
+  9 0 translate
+  % 0 0 10 10 rectstroke
+  {
+    { 0 0 10 10 0 5 5 5 5 180 0 -2 0 5 5 2.5 0 180
+      0 5 5 5 5 180 0 -2 0 5 5 2.5 0 180 }
+    < 00 01 08 04 07 0A 01 07 04 08 0A >
+  } ufill
+  %
+  % "N"
+  11 0 translate
+  % 0 0 8 10 rectstroke
+  {
+    {
+    0 0 8 10 01 00
+    00 08 -1 0 1 2 2 0
+    3 -5.5 0 5.5 2 0 0 -10 -2 0
+    -3 5.5 0 -5.5
+    }
+    < 00 01 2B 04 0A >
+  } ufill
+  %
+  % "I"
+  9.5 0 translate
+  % 0 0 3 10 rectstroke
+  {
+    { 0 0 3 10 1 0 0 8 -1 0 1 2 2 0 0 -10 }
+    < 00 01 25 04 0A >
+  } ufill
+  %
+  % "C"
+  4.5 0 translate
+  % 0 0 9 10 rectstroke
+  {
+    { 0 0 9 10 8 8 5 5 5 45 315 -1 1 5 5 2.75 315 45 1 1 }
+    < 00 01 07 04 08 04 0A >
+  } ufill
+  %
+  % "S"
+  9 0 translate
+  % 0 0 8 10 rectstroke
+  {
+    {
+    0 0 8 10  5.25 8 4 7 2.5 45 215 4.15 7 1 200 45 5.25 3.75 4 2.5 2.5 45 215
+    4 2.5 1 200 45 1.95 5.60 2.75 -2.4 1.1 1.05 -2.6 2.35 2 1 0 2.2 0.99 -1.05
+    4.9 7.7 1.2 -1 -0.2 1.95 -0.1 0.1
+    }
+    < 00 01 07 08 0A 01 08 07 0A 01 23 04 0A 01 04 04 0A 01 23 04 0A >
+  } ufill
+} bind def
+%
+% Show the watermark
+/showWaterMark {
+  gsave
+  boxItemX 135 add boxItemY 40 add translate 40 rotate
+  0.9 setgray 4 4 scale ableLogo
+  grestore
+} bind def
+%
+% Show the invoice box
+/showInvoiceBox
+{
+  gsave
+  boxInvoiceX boxInvoiceY translate
+  newpath
+  /boxInvSec {boxInvoiceH 5 div} def
+  % Draw the boxes
+  0 boxInvSec 3 mul moveto
+  boxInvoiceW 0 rlineto
+  0 boxInvoiceH currY sub boxRadius sub rlineto
+  currX boxRadius sub currY boxRadius 0 90 arc
+  boxInvoiceW neg boxRadius 2 mul add 0 rlineto
+  currX currY boxRadius sub boxRadius 90 180 arc
+  closepath fill
+  0 0 boxInvoiceW boxInvoiceH boxRadius sub rectstroke
+  % Write the text
+  1.0 setgray
+  pageTitle (pack) eq
+  {
+    fntInvoiceHead setfont
+    boxInvoiceW 2 div boxInvoiceH moveto
+    nextLine (Packing Slip) cJustify show
+  }
+  {
+    fntStoreName setfont
+    boxInvoiceW 2 div boxInvSec 3.7 mul moveto
+    (Invoice) cJustify show
+  } ifelse
+  0.0 setgray
+  fntInvoiceText setfont
+  boxInvoiceW 2 idiv boxInvSec 2 mul moveto
+  ( Order : ) rJustify show (${invInfo_NUMBER}) show
+  boxInvoiceW 2 idiv currY moveto
+  nextLine ( Date : ) rJustify show (${invInfo_DATE}) show
+  boxInvoiceW 2 idiv currY moveto
+  nextLine ( Page : ) rJustify show pageCurrent (   ) cvs show
+  ( of ) show pagesTotal (   ) cvs show
+  grestore
+} bind def
+%
+% Show store return address
+/showStoreAddress {
+  % Show the logo at the top
+  gsave boxStoreX boxStoreY boxStoreH add 40 sub translate 1.5 1.5 scale ableLogo grestore
+  gsave
+  boxStoreX boxStoreY translate
+  newpath
+  0 boxStoreH 35 sub moveto
+  fntStoreBite setfont
+  nextLine ($(echo "${adxAble_TAG}")) show 0 currY moveto
+  fntStoreAdx setfont
+  nextLine ($(echo "${adxAble_STREET}")) show 0 currY moveto
+  nextLine ($(echo "${adxAble_CITY}, ${adxAble_STATE} ${adxAble_ZIP}"))
+  show 0 currY moveto
+  nextLine ($(echo "Phone: ${adxAble_PHONE}  Fax: ${adxAble_FAX}")) show 0 currY moveto
+  nextLine ($(echo "Web  : ${adxAble_WEB}")) show 0 currY moveto
+  grestore
+} bind def
 
-        %
-        % Show the sales info
-        /showSalesInfo {
-          fntInvoiceText setfont
-          gsave
-          0.5 setlinewidth
-          boxSalesX boxSalesY translate
-          % At this point, all references are to 0 0
-          % Draw the filled area and lines
-            0 boxSalesH 2 idiv moveto
-          boxSalesW 0 rlineto
-          0 boxSalesH 2 idiv boxRadius sub rlineto
-          currX boxRadius sub currY boxRadius 0 90 arc
-          boxSalesW boxRadius 2 mul sub neg 0 rlineto
-          currX currY boxRadius sub boxRadius 90 180 arc
-          closepath fill
-          0 0 boxSalesW boxSalesH 2 div rectstroke
-          boxSalesPerson 0 moveto 0 boxSalesH 2 idiv rlineto stroke
-          boxSalesShip 0 moveto 0 boxSalesH 2 idiv rlineto stroke
-          boxSalesDate 0 moveto 0 boxSalesH 2 idiv rlineto stroke
-          boxSalesTerms 0 moveto 0 boxSalesH 2 idiv rlineto stroke
-          % Show text
-          1.0 setgray
-          0 boxSalesH 2 idiv 10 add moveto
-          boxSalesPO boxSalesSecW 2 idiv add currY moveto (Purchase Order  ) cJustify show
-          boxSalesPerson boxSalesSecW 2 idiv add currY moveto (Salesman) cJustify show
-          boxSalesShip boxSalesSecW 2 idiv add currY moveto (Shipped Via) cJustify show
-          boxSalesDate boxSalesSecW 2 idiv add currY moveto (Ship Date) cJustify show
-          boxSalesTerms boxSalesSecW 2 idiv add currY moveto (Terms   ) cJustify show
-          0.0 setgray 0 10 moveto
-          boxSalesPO currY moveto (${invInfo_PO}) show
-          boxSalesPerson 30 add currY moveto (${invInfo_SALES}) show
-          boxSalesShip 20 add currY moveto (${invInfo_SHIPTYPE}) show
-          boxSalesDate 20 add currY moveto (${invInfo_SHIPDATE}) show
-          boxSalesTerms 20 add currY moveto (${invInfo_TERMS}) show
-          grestore
-        } bind def
-        %
-        % Show the items header and lines
-        /showItemsBoxes {
-          gsave
-          boxItemX boxItemY moveto
-          boxItemX boxItemY boxItemW boxItemH rectstroke
-          boxItemShip boxItemY moveto 0 boxItemH rlineto
-          boxItemBack boxItemY moveto 0 boxItemH rlineto
-          boxItemCode boxItemY moveto 0 boxItemH rlineto
-          boxItemVendor boxItemY moveto 0 boxItemH rlineto
-          boxItemDesc boxItemY moveto 0 boxItemH rlineto
-          pageTitle (pack) ne {
-            boxItemUI boxItemY moveto 0 boxItemH rlineto
-            boxItemExtended boxItemY moveto 0 boxItemH rlineto
-          } if
-          stroke
-          grestore
-          gsave
-          boxItemHeadX boxItemHeadY translate
-          fntItemHead setfont
-          0 0 moveto
-          0 0 boxItemHeadW boxItemHeadH rectfill
-          1.0 setgray
-          boxItemShip 8 add boxItemHeadH 2 div 5 add moveto (Quantity) cJustify show
-          boxItemCode currY moveto (Item) show
-          boxItemVendor 25 add currY moveto (Vendor) show
-          pageTitle (pack) ne {
-            boxItemUI 20 add currY moveto (Price) show
-          } if
-          boxItemOrder 10 moveto (Order) show
-          boxItemShip 8 sub currY moveto (Shipped) show
-          boxItemBack 12 sub currY moveto (Backorder) show
-          boxItemCode currY moveto (Code) show
-          boxItemVendor 10 sub currY moveto (ID) show
-          boxItemDesc 40 sub currY moveto (Part) rJustify show
-          boxItemDesc 20 add currY moveto (Description) show
-          pageTitle (pack) ne {
-            boxItemUI currY moveto (Unit) show
-            boxItemExtended 5 sub currY moveto (Extended) show
-          } if
-          grestore
-        } bind def
-        %
-        % Show a line item
-        /showItemLine {
-          % We should receive an array of items here
-          % 0 - invItems_ORDER
-          % 1 - invItems_SHIPPED
-          % 2 - invItems_BACK
-          % 3 - invItems_ITEM
-          % 4 - invItems_VENDOR
-          % 5 - invItems_DESCRIPTION
-          % 6 - invItems_PRICEUI
-          % 7 - invItems_PRICETOT
-          pop % # Array count - don't need it
-          pageTitle (pack) ne
-          {
-            boxItemX 5 sub boxItemW add currY moveto rJustify show % Extended price
-            boxItemExtended 5 sub currY moveto rJustify show % Unit price
-          }
-          { pop pop }
-          ifelse
-          boxItemDesc 3 add currY moveto show % Description
-          boxItemVendor 3 add currY moveto show % Vendor info
-          boxItemCode 5 add currY moveto show % item code
-          boxItemCode 5 sub currY moveto rJustify show % backordered
-          boxItemBack 5 sub currY moveto rJustify show % shipped
-          boxItemShip 5 sub currY moveto rJustify show % ordered
-        } bind def
-        %
-        % Loop through the item list
-        /showItems {
-          gsave
-          fntInvoiceItem setfont
-          boxItemX boxItemHeadY moveto nextLine
-          {
-            aload showItemLine pop
-            boxItemX currY moveto nextLine
-          } forall
-          grestore
-        } bind def
-        %
-        % Show Memo lines
-        /showMemo {
-          gsave
-          fntInvoiceText setfont
-          boxMemoX 10 add boxMemoY boxMemoH add moveto
-        $(
-          for (( i=0; i< ${#invMemo[@]}; ++i)) ; do
-            echo -en "  nextLine (${invMemo[$i]}) dup show rJustify pop\n"
-          done
-        )
-          grestore
-        } bind def
-        %
-        % Show signature on store copy
-        /showSignature {
-          gsave
-          boxMemoX 10 add boxMemoY 5 add moveto
-          (Signature:                           Date: ) show
-          grestore
-        } bind def
-        %
-        % Show subtotal, tax, freight, total
-        /showTotal {
-          gsave
-          % Show the labels first
-          fntInvoiceText setfont
-          boxTotalX 10 add boxTotalY boxTotalH add moveto
-          nextLine (Subtotal:) dup show rJustify pop
-          nextLine (Tax:) dup show rJustify pop
-          nextLine (Freight:) dup show rJustify pop
-          fntInvoiceHead setfont
-          nextLine (TOTAL:) show
-          % Now show the values right justified
-          fntInvoiceText setfont
-          boxTotalX boxTotalW add 10 sub boxTotalY boxTotalH add moveto
-          nextLine (${invInfo_SUBTOTAL}) rJustify show
-          nextLine (${invInfo_TAX}) rJustify show
-          nextLine (${invInfo_FREIGHT}) rJustify show
-          fntInvoiceHead setfont
-          nextLine (${invInfo_TOTAL}) rJustify show
-          grestore
-        } bind def
-        %
-        % Show billing/shipping address
-        /showAddress {
-          % array showAddress
-          { show 0 currY moveto nextLine } forall
-        } bind def
-        %
-        /showBillingAdx {
-          gsave
-          fntStoreBite setfont
-          boxBillX boxBillY translate
-          0 boxBillH moveto
-          nextLine (Bill to: ) rJustify show 0 currY moveto
-          (${invBill[0]}) show 0 currY moveto
-          nextLine billAdx showAddress
-          grestore
-        } bind def
-        %
-        /showShippingAdx {
-          gsave
-          fntStoreBite setfont
-          boxShipX boxShipY translate
-          0 boxShipH moveto
-          nextLine (Ship to: ) rJustify show 0 currY moveto
-          (${invShip[0]}) show 0 currY moveto
-          nextLine shipAdx showAddress
-          grestore
-        } bind def
-        %
-        %  =====================================================
-        % |          Build the invoice page                     |
-        %  =====================================================
-        /showInvoice {
-          /pageCurrent 0 def
-          itemList {
-            /pageCurrent pageCurrent 1 add def
-            % showSections % Test line for arranging page
-            showWaterMark
-            showStoreAddress
-            showInvoiceBox
-            showBillingAdx
-            showShippingAdx
-            showSalesInfo
-            showItemsBoxes
-            showMemo
-            pageTitle (store) eq {
-              pageCurrent pagesTotal eq {
-                showSignature
-              } if
-            } if
-            pageTitle (pack) ne {
-              pageCurrent pagesTotal eq {
-                showTotal
-              } if
-            } if
-            aload showItems
-            pageCurrent pagesTotal lt
-            { fntInvoiceText setfont
-              boxItemX boxItemW 2 div add boxItemY 5 add moveto
-              (Continued on next page) cJustify show
-            } if
-            showpage
-          } forall
-        } bind def
-        %
-        % Time to build the invoice page
-        /pageTitle (store) def showInvoice % Store copy of invoice
-        /pageTitle (cust) def showInvoice  % Customer copy of invoice
-        /pageTitle (pack) def showInvoice  % Packing slip copy
+%
+% Show the sales info
+/showSalesInfo {
+  fntInvoiceText setfont
+  gsave
+  0.5 setlinewidth
+  boxSalesX boxSalesY translate
+  % At this point, all references are to 0 0
+  % Draw the filled area and lines
+    0 boxSalesH 2 idiv moveto
+  boxSalesW 0 rlineto
+  0 boxSalesH 2 idiv boxRadius sub rlineto
+  currX boxRadius sub currY boxRadius 0 90 arc
+  boxSalesW boxRadius 2 mul sub neg 0 rlineto
+  currX currY boxRadius sub boxRadius 90 180 arc
+  closepath fill
+  0 0 boxSalesW boxSalesH 2 div rectstroke
+  boxSalesPerson 0 moveto 0 boxSalesH 2 idiv rlineto stroke
+  boxSalesShip 0 moveto 0 boxSalesH 2 idiv rlineto stroke
+  boxSalesDate 0 moveto 0 boxSalesH 2 idiv rlineto stroke
+  boxSalesTerms 0 moveto 0 boxSalesH 2 idiv rlineto stroke
+  % Show text
+  1.0 setgray
+  0 boxSalesH 2 idiv 10 add moveto
+  boxSalesPO boxSalesSecW 2 idiv add currY moveto (Purchase Order  ) cJustify show
+  boxSalesPerson boxSalesSecW 2 idiv add currY moveto (Salesman) cJustify show
+  boxSalesShip boxSalesSecW 2 idiv add currY moveto (Shipped Via) cJustify show
+  boxSalesDate boxSalesSecW 2 idiv add currY moveto (Ship Date) cJustify show
+  boxSalesTerms boxSalesSecW 2 idiv add currY moveto (Terms   ) cJustify show
+  0.0 setgray 0 10 moveto
+  boxSalesPO currY moveto (${invInfo_PO}) show
+  boxSalesPerson 30 add currY moveto (${invInfo_SALES}) show
+  boxSalesShip 20 add currY moveto (${invInfo_SHIPTYPE}) show
+  boxSalesDate 20 add currY moveto (${invInfo_SHIPDATE}) show
+  boxSalesTerms 20 add currY moveto (${invInfo_TERMS}) show
+  grestore
+} bind def
+%
+% Show the items header and lines
+/showItemsBoxes {
+  gsave
+  boxItemX boxItemY moveto
+  boxItemX boxItemY boxItemW boxItemH rectstroke
+  boxItemShip boxItemY moveto 0 boxItemH rlineto
+  boxItemBack boxItemY moveto 0 boxItemH rlineto
+  boxItemCode boxItemY moveto 0 boxItemH rlineto
+  boxItemVendor boxItemY moveto 0 boxItemH rlineto
+  boxItemDesc boxItemY moveto 0 boxItemH rlineto
+  pageTitle (pack) ne {
+    boxItemUI boxItemY moveto 0 boxItemH rlineto
+    boxItemExtended boxItemY moveto 0 boxItemH rlineto
+  } if
+  stroke
+  grestore
+  gsave
+  boxItemHeadX boxItemHeadY translate
+  fntItemHead setfont
+  0 0 moveto
+  0 0 boxItemHeadW boxItemHeadH rectfill
+  1.0 setgray
+  boxItemShip 8 add boxItemHeadH 2 div 5 add moveto (Quantity) cJustify show
+  boxItemCode currY moveto (Item) show
+  boxItemVendor 25 add currY moveto (Vendor) show
+  pageTitle (pack) ne {
+    boxItemUI 20 add currY moveto (Price) show
+  } if
+  boxItemOrder 10 moveto (Order) show
+  boxItemShip 8 sub currY moveto (Shipped) show
+  boxItemBack 12 sub currY moveto (Backorder) show
+  boxItemCode currY moveto (Code) show
+  boxItemVendor 10 sub currY moveto (ID) show
+  boxItemDesc 40 sub currY moveto (Part) rJustify show
+  boxItemDesc 20 add currY moveto (Description) show
+  pageTitle (pack) ne {
+    boxItemUI currY moveto (Unit) show
+    boxItemExtended 5 sub currY moveto (Extended) show
+  } if
+  grestore
+} bind def
+%
+% Show a line item
+/showItemLine {
+  % We should receive an array of items here
+  % 0 - invItems_ORDER
+  % 1 - invItems_SHIPPED
+  % 2 - invItems_BACK
+  % 3 - invItems_ITEM
+  % 4 - invItems_VENDOR
+  % 5 - invItems_DESCRIPTION
+  % 6 - invItems_PRICEUI
+  % 7 - invItems_PRICETOT
+  pop % # Array count - don't need it
+  pageTitle (pack) ne
+  {
+    boxItemX 5 sub boxItemW add currY moveto rJustify show % Extended price
+    boxItemExtended 5 sub currY moveto rJustify show % Unit price
+  }
+  { pop pop }
+  ifelse
+  boxItemDesc 3 add currY moveto show % Description
+  boxItemVendor 3 add currY moveto show % Vendor info
+  boxItemCode 5 add currY moveto show % item code
+  boxItemCode 5 sub currY moveto rJustify show % backordered
+  boxItemBack 5 sub currY moveto rJustify show % shipped
+  boxItemShip 5 sub currY moveto rJustify show % ordered
+} bind def
+%
+% Loop through the item list
+/showItems {
+  gsave
+  fntInvoiceItem setfont
+  boxItemX boxItemHeadY moveto nextLine
+  {
+    aload showItemLine pop
+    boxItemX currY moveto nextLine
+  } forall
+  grestore
+} bind def
+%
+% Show Memo lines
+/showMemo {
+  gsave
+  fntInvoiceText setfont
+  boxMemoX 10 add boxMemoY boxMemoH add moveto
+$(
+  for (( i=0; i< ${#invMemo[@]}; ++i)) ; do
+    echo -en "  nextLine (${invMemo[$i]}) dup show rJustify pop\n"
+  done
+)
+  grestore
+} bind def
+%
+% Show signature on store copy
+/showSignature {
+  gsave
+  boxMemoX 10 add boxMemoY 5 add moveto
+  (Signature:                           Date: ) show
+  grestore
+} bind def
+%
+% Show subtotal, tax, freight, total
+/showTotal {
+  gsave
+  % Show the labels first
+  fntInvoiceText setfont
+  boxTotalX 10 add boxTotalY boxTotalH add moveto
+  nextLine (Subtotal:) dup show rJustify pop
+  nextLine (Tax:) dup show rJustify pop
+  nextLine (Freight:) dup show rJustify pop
+  fntInvoiceHead setfont
+  nextLine (TOTAL:) show
+  % Now show the values right justified
+  fntInvoiceText setfont
+  boxTotalX boxTotalW add 10 sub boxTotalY boxTotalH add moveto
+  nextLine (${invInfo_SUBTOTAL}) rJustify show
+  nextLine (${invInfo_TAX}) rJustify show
+  nextLine (${invInfo_FREIGHT}) rJustify show
+  fntInvoiceHead setfont
+  nextLine (${invInfo_TOTAL}) rJustify show
+  grestore
+} bind def
+%
+% Show billing/shipping address
+/showAddress {
+  % array showAddress
+  { show 0 currY moveto nextLine } forall
+} bind def
+%
+/showBillingAdx {
+  gsave
+  fntStoreBite setfont
+  boxBillX boxBillY translate
+  0 boxBillH moveto
+  nextLine (Bill to: ) rJustify show 0 currY moveto
+  (${invBill[0]}) show 0 currY moveto
+  nextLine billAdx showAddress
+  grestore
+} bind def
+%
+/showShippingAdx {
+  gsave
+  fntStoreBite setfont
+  boxShipX boxShipY translate
+  0 boxShipH moveto
+  nextLine (Ship to: ) rJustify show 0 currY moveto
+  (${invShip[0]}) show 0 currY moveto
+  nextLine shipAdx showAddress
+  grestore
+} bind def
+%
+%  =====================================================
+% |          Build the invoice page                     |
+%  =====================================================
+/showInvoice {
+  /pageCurrent 0 def
+  itemList {
+    /pageCurrent pageCurrent 1 add def
+    % showSections % Test line for arranging page
+    showWaterMark
+    showStoreAddress
+    showInvoiceBox
+    showBillingAdx
+    showShippingAdx
+    showSalesInfo
+    showItemsBoxes
+    showMemo
+    pageTitle (store) eq {
+      pageCurrent pagesTotal eq {
+        showSignature
+      } if
+    } if
+    pageTitle (pack) ne {
+      pageCurrent pagesTotal eq {
+        showTotal
+      } if
+    } if
+    aload showItems
+    pageCurrent pagesTotal lt
+    { fntInvoiceText setfont
+      boxItemX boxItemW 2 div add boxItemY 5 add moveto
+      (Continued on next page) cJustify show
+    } if
+    showpage
+  } forall
+} bind def
+%
+% Time to build the invoice page
+/pageTitle (store) def showInvoice % Store copy of invoice
+/pageTitle (cust) def showInvoice  % Customer copy of invoice
+/pageTitle (pack) def showInvoice  % Packing slip copy
 
-        %%EOF
+%%EOF
 HERE
 
         } >"${filePS}"
