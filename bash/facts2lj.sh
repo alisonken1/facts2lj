@@ -67,8 +67,10 @@ archive)
     source ${dirScripts}/facts2archive.sh
     ;;
 *)
-
-    dbg ${dbg_ERROR} "Unkonwn destination: ${lpPrinter}"
+    # Test for invoice first
+    dbg ${dbg_INFO} "Calling invoice"
+    export dbgLevel=${dbg_ALL}
+    source ${dirScripts}/facts2invoice.sh
     ;;
 esac
 
